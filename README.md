@@ -1,4 +1,10 @@
-# Lecture 18 - RESTful API (Part 3)
+# Lab 16 - RESTful API (Part 3)
+
+### ป้อนข้อมูลนักศึกษา
+
+รหัส นศ.: 670610695
+
+ชื่อ-สกุล : ทินภัทร ศรีวิชัย
 
 ### Content
 
