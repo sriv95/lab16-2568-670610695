@@ -59,7 +59,7 @@ router.post("/login", (req: Request, res: Response) => {
             username: user.username,
             role: user.role,
             studentId: user.studentId,
-        }, jwt_secret, { expiresIn: "5m" });
+        }, jwt_secret, { expiresIn: "2hr" });
         // 4. send HTTP response with JWT token
         res.status(200).json({
             success: true,
@@ -73,13 +73,6 @@ router.post("/login", (req: Request, res: Response) => {
             error: err
         })
     }
-
-
-
-    return res.status(500).json({
-        success: false,
-        message: "POST /api/v2/users/login has not been implemented yet",
-    });
 });
 
 // POST /api/v2/users/logout
