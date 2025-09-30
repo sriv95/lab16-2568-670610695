@@ -17,7 +17,6 @@ router.get(
     checkRoleAdmin, // check User exists and ADMIN role
     (req: Request, res: Response) => {
         try {
-            // return all users
             return res.json({
                 success: true,
                 data: enrollments,
@@ -32,6 +31,27 @@ router.get(
     }
 );
 
-
+// POST reset
+router.post(
+    "/reset",
+    authenticateToken, // verify token and extract "user payload"
+    checkRoleAdmin, // check User exists and ADMIN role
+    (req: Request, res: Response) => {
+        try {
+            // reset all users
+            reset_enrollments();
+            return res.json({
+                success: true,
+                message: "enrollments database has been reset"
+            });
+        } catch (err) {
+            return res.status(200).json({
+                success: false,
+                message: "Something is wrong, please try again",
+                error: err,
+            });
+        }
+    }
+);
 
 export default router
