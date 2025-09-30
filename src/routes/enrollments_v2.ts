@@ -8,7 +8,7 @@ import type { Enrollment, CustomRequest, UserPayload, Student } from "../libs/ty
 // import database
 import { enrollments, reset_enrollments, students } from "../db/db.js";
 import { success } from "zod";
-import { zStudentId,zEnrollmentBody } from "../libs/zodValidators.js"
+import { zStudentId, zEnrollmentBody, zCourseId } from "../libs/zodValidators.js"
 import { authenticateToken } from "../middlewares/authenMiddleware.js";
 import { checkRoleAdmin } from "../middlewares/checkRoleAdminMiddleware.js";
 import { checkRoles } from "../middlewares/checkRolesMiddleware.js"
@@ -166,7 +166,7 @@ router.delete(
     checkRoles,
     (req: Request, res: Response) => {
         try {
-            const body = req.body as Enrollment;
+            const body = req.body;
             const payload = (req as CustomRequest).user;
             const studentId = req.params.studenId;
             const parseResult = zStudentId.safeParse(studentId);
@@ -180,40 +180,50 @@ router.delete(
             if (payload?.role === "ADMIN" && payload?.studentId !== studentId) {
                 return res.status(403).json({
                     success: false,
-                    message: "Forbidden access",
+                    message: "You are not allowed to modify another student's data",
                 });
             }
 
-            const foundIndex = students.findIndex(
-                (s: Student) => s.studentId === studentId
+            const foundIndex = enrollments.findIndex(
+                (e: Enrollment) => e.studentId === studentId
+                    && e.courseId === body.courseId
             );
             if (foundIndex === -1) {
                 return res.status(404).json({
                     success: false,
-                    message: "Student does not exists",
+                    message: "Enrollment does not exists",
                 });
             }
 
-            // check if course id exists
-            if (students[foundIndex]?.courses?.includes(body.courseId)) {
-                return res.status(400).json({
+            // delete in enrollments
+            enrollments.splice(foundIndex, 1);
+
+            // delete in students
+            const foundIndex2 = students.findIndex(
+                (s: Student) => s.studentId === studentId
+            );
+            if (foundIndex2 === -1) {
+                return res.status(404).json({
                     success: false,
-                    message: "studentId && courseId already exists",
-                });
+                    message: "Student does not exists",
+                })
+            }
+            const foundIndex3 = students[foundIndex2]?.courses?.findIndex(
+                (c: string) => c === body.courseId
+            ) || -1;
+            if (foundIndex3 === -1) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Course does not exists",
+                })
             }
 
-            students[foundIndex]?.courses?.push(body.courseId);
+            students[foundIndex2]?.courses?.splice(foundIndex3, 1);
 
-            const enrollement: Enrollment = {
-                studentId: String(studentId),
-                courseId: body.courseId,
-            };
-            enrollments.push(enrollement);
-
-            return res.status(201).json({
+            return res.status(200).json({
                 success: true,
-                message: `Student ${studentId} && Course ${body.courseId} has been added successfully`,
-                data: enrollement,
+                message: `Student ${studentId} && Course ${body.courseId} has been deleted successfully`,
+                data: enrollments,
             });
         } catch (err) {
             return res.status(200).json({
