@@ -8,72 +8,32 @@ import type { User, CustomRequest, UserPayload } from "../libs/types.js";
 // import database
 import { users, reset_users, students } from "../db/db.js";
 import { success } from "zod";
+import { authenticateToken } from "../middlewares/authenMiddleware.js";
+import { checkRoleAdmin } from "../middlewares/checkRoleAdminMiddleware.js";
 
 const router = Router();
 
 // GET /api/v2/users
-router.get("/", (req: Request, res: Response) => {
-    try {
-        const authHeader = req.headers["authorization"]
-
-        if (!authHeader || !authHeader.startsWith("Bearer")) {
-            return res.status(401).json({
-                success: false,
-                message: "Authorization header is not found"
-            })
-        }
-
-        const token = authHeader?.split(" ")[1]
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: "Token is required"
-            })
-        }
-
+router.get(
+    "/",
+    authenticateToken, // verify token and extract "user payload"
+    checkRoleAdmin, // check User exists and ADMIN role
+    (req: Request, res: Response) => {
         try {
-            const jwt_secret = process.env.JWT_SECRET || "forgot_secret"
-            jwt.verify(token, jwt_secret, (err, payload) => {
-                if (err) {
-                    return res.status(403).json({
-                        success: false,
-                        message: "Invalid or expired token"
-                    })
-                }
-
-                const user = users.find(
-                    (u: User) => u.username === (payload as UserPayload).username
-                )
-
-                if (!user || user.role !== "ADMIN") {
-                    return res.status(401).json({
-                        success: false,
-                        message: "Unauthorized user"
-                    })
-                }
-
-                // return all users
-                return res.json({
-                    success: true,
-                    message: "Successful operation",
-                    data: users,
-                });
-            })
+            // return all users
+            return res.json({
+                success: true,
+                data: users,
+            });
         } catch (err) {
-            return res.status(500).json({
+            return res.status(200).json({
                 success: false,
                 message: "Something is wrong, please try again",
                 error: err,
-            })
+            });
         }
-    } catch (err) {
-        return res.status(200).json({
-            success: false,
-            message: "Something is wrong, please try again",
-            error: err,
-        });
     }
-});
+);
 
 // POST /api/v2/users/login
 router.post("/login", (req: Request, res: Response) => {
